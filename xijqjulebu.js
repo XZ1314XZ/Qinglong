@@ -8,7 +8,7 @@
 多账号@隔开
 比如 export xjhd='eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.XXXXXX'@'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.XXXXXX'
 
-cron: 0 0-24/2 * * * 
+cron: 0 0-23/2 * * * 
 */
 //定时 0 */2 * * * 吧
 const $ = new Env('习酒');
