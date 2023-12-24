@@ -1,3 +1,14 @@
+/**
+ * @Author        Scipline
+ * @Since         2023-12-24 09:59:39
+ * @LastEditor    Scipline
+ * @LastEditTime  2023-12-24 10:09:51
+ * @FileName      Aixx_signin.js
+ * @Description   Aixx灵感每日签到
+cron: 51 8 * * *
+const $ = new Env("Aixx灵感每日签到");
+*/
+
 var request = require('request');
 var options = {
    'method': 'POST',

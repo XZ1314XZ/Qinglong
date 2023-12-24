@@ -1,3 +1,8 @@
+"""
+time：2023.12.12
+cron: 12 12 * * *
+new Env('科技玩家签到');
+"""
 import json
 import re
 import asyncio
