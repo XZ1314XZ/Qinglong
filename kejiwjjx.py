@@ -7,7 +7,7 @@ import json
 import re
 import asyncio
 from aiohttp import ClientSession
-
+import os
 contents = ''
 
 
@@ -34,16 +34,14 @@ class AuthenticatedSession:
             'Accept': 'application/json, text/plain, */*',
             'Origin': 'https://www.kejiwanjia.net',
             'Sec-Fetch-Dest': 'empty',
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36',
             'Content-Type': 'application/x-www-form-urlencoded',
             'Sec-Fetch-Site': 'same-origin',
             'Sec-Fetch-Mode': 'cors',
             'Referer': 'https://www.kejiwanjia.net',
             'Accept-Language': 'zh-CN,zh;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
-        data  = f"nickname=&username={self.user}&password={self.passwd}&code=&img_code=&invitation_code=&token=&smsToken=&luoToken=&confirmPassword=&loginType="
-
+        data = f"nickname=&username={self.user}&password={self.passwd}&code=&img_code=&invitation_code=&token=&smsToken=&luoToken=&confirmPassword=&loginType="
 
         async with self.session.post('https://www.kejiwanjia.net/wp-json/jwt-auth/v1/token', headers=headers,
                                      data=data) as response:
@@ -53,26 +51,29 @@ class AuthenticatedSession:
                 self.session.headers.update({
                     'Authorization': self.authorization
                 })
-                self.session.cookie_jar.update_cookies({'Authorization': self.authorization})
-                self.session = self.session
+                self.session.cookie_jar.update_cookies(
+                    {'Authorization': self.authorization})
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error occurred: {e}")
             except Exception as e:
-                print(f"Error occurred: {e}")
-
-
+                print(f"Unexpected error occurred: {e}")
+        await self.session.get('https://www.kejiwanjia.net')
 
     async def info(self):
         async with self.session.post('https://www.kejiwanjia.net/wp-json/b2/v1/getUserInfo',
                                      data={'ref': 'null'}) as response:
             try:
                 resp = (await response.text()).replace('\/', '/').encode("utf-8").decode("unicode_escape")
-                resp1 = re.sub(r'"icon":"[<]span(.*?)/span>",', '', re.sub(r'"verify_icon"(.+?)/i>",', '', resp))
+                resp1 = re.sub(
+                    r'"icon":"[<]span(.*?)/span>",', '', re.sub(r'"verify_icon"(.+?)/i>",', '', resp))
                 result = json.loads(resp1)
                 user_data = result['user_data']
                 self.username = user_data['name']
                 self.comment_count = int(user_data['comment_count'])
                 self.credit = int(user_data['credit'])
                 self.user_id = user_data['id']
-                self.user_lv = user_data['lv']['lv']['name'] + user_data['lv']['lv']['lv']
+                self.user_lv = user_data['lv']['lv']['name'] + \
+                    user_data['lv']['lv']['lv']
                 user_info = f'【+】用户名：{self.username}，ID：{self.user_id}\n【+】当前等级：{self.user_lv}'
                 output(user_info)
             except Exception as e:
@@ -88,6 +89,7 @@ class AuthenticatedSession:
                     self.credit += int(result1)
                     sign_info = '【+】签到成功，获得积分：' + str(result1)
                 else:
+                    print(result)
                     sign_info = '【+】签到失败'
                 output(sign_info)
             except Exception as e:
@@ -96,7 +98,8 @@ class AuthenticatedSession:
 
 async def qywx_key():
     qykey = '0e8d3263-029e-4ff4-ae93-58449e040f8a'
-    qywx_key_key = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={}".format(qykey)
+    qywx_key_key = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={}".format(
+        qykey)
     qywx_key_message = {"msgtype": "text",
                         "text": {
                             "content": contents,
@@ -115,10 +118,13 @@ async def handle_user(user, passwd):
         await auth_session.login()
         await auth_session.info()
         await auth_session.signin()
-    output(f'Total comments: {auth_session.comment_count}, Total credit: {auth_session.credit}')
+    output(
+        f'Total comments: {auth_session.comment_count}, Total credit: {auth_session.credit}')
+
 
 async def main():
-    userpass = dict([('xiaozong_52@qq.com', 123456789),('send_message@qq.com', 123456789)])
+    userpass = os.getenv("KEJIWJJX")
+    userpass = json.loads(userpass)
     tasks = [handle_user(user, passwd) for user, passwd in userpass.items()]
     await asyncio.gather(*tasks)
     print(contents)

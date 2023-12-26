@@ -6,6 +6,7 @@ new Env('宿舍电量通报');
 """
 
 import json
+import os
 import requests
 from urllib.parse import quote
 import smtplib
@@ -15,13 +16,107 @@ from email.mime.multipart import MIMEMultipart
 
 # from notify import send
 
+# 通知服务
+push_config = {
+    'HITOKOTO': False,                  # 启用一言（随机句子）
+
+    # bark IP 或设备码，例：https://api.day.app/DxHcxxxxxRxxxxxxcm/
+    'BARK_PUSH': '',
+    'BARK_ARCHIVE': '',                 # bark 推送是否存档
+    'BARK_GROUP': '',                   # bark 推送分组
+    'BARK_SOUND': '',                   # bark 推送声音
+    'BARK_ICON': '',                    # bark 推送图标
+    'BARK_LEVEL': '',                   # bark 推送时效性
+    'BARK_URL': '',                     # bark 推送跳转URL
+
+    'CONSOLE': True,                    # 控制台输出
+
+    'DD_BOT_SECRET': '',                # 钉钉机器人的 DD_BOT_SECRET
+    'DD_BOT_TOKEN': '',                 # 钉钉机器人的 DD_BOT_TOKEN
+
+    'FSKEY': '',                        # 飞书机器人的 FSKEY
+
+    'GOBOT_URL': '',                    # go-cqhttp
+                                        # 推送到个人QQ：http://127.0.0.1/send_private_msg
+                                        # 群：http://127.0.0.1/send_group_msg
+    'GOBOT_QQ': '',                     # go-cqhttp 的推送群或用户
+                                        # GOBOT_URL 设置 /send_private_msg 时填入 user_id=个人QQ
+                                        #               /send_group_msg   时填入 group_id=QQ群
+    'GOBOT_TOKEN': '',                  # go-cqhttp 的 access_token
+
+    'GOTIFY_URL': '',                   # gotify地址,如https://push.example.de:8080
+    'GOTIFY_TOKEN': '',                 # gotify的消息应用token
+    'GOTIFY_PRIORITY': 0,               # 推送消息优先级,默认为0
+
+    'IGOT_PUSH_KEY': '',                # iGot 聚合推送的 IGOT_PUSH_KEY
+
+    'PUSH_KEY': '',                     # server 酱的 PUSH_KEY，兼容旧版与 Turbo 版
+
+    'DEER_KEY': '',                     # PushDeer 的 PUSHDEER_KEY
+    'DEER_URL': '',                     # PushDeer 的 PUSHDEER_URL
+
+    'CHAT_URL': '',                     # synology chat url
+    'CHAT_TOKEN': '',                   # synology chat token
+
+    'PUSH_PLUS_TOKEN_1': '',              # push+ 微信推送的用户令牌
+    'PUSH_PLUS_USER_1': '',               # push+ 微信推送的群组编码
+
+    'QMSG_KEY': '',                     # qmsg 酱的 QMSG_KEY
+    'QMSG_TYPE': '',                    # qmsg 酱的 QMSG_TYPE
+
+    'QYWX_ORIGIN': '',                  # 企业微信代理地址
+
+    'QYWX_AM': '',                      # 企业微信应用
+
+    'QYWX_KEY': '',                     # 企业微信机器人
+
+    # tg 机器人的 TG_BOT_TOKEN，例：1407203283:AAG9rt-6RDaaX0HBLZQq0laNOh898iFYaRQ
+    'TG_BOT_TOKEN': '',
+    'TG_USER_ID': '',                   # tg 机器人的 TG_USER_ID，例：1434078534
+    'TG_API_HOST': '',                  # tg 代理 api
+    'TG_PROXY_AUTH': '',                # tg 代理认证参数
+    'TG_PROXY_HOST': '',                # tg 机器人的 TG_PROXY_HOST
+    'TG_PROXY_PORT': '',                # tg 机器人的 TG_PROXY_PORT
+
+    # 智能微秘书 个人中心的apikey 文档地址：http://wechat.aibotk.com/docs/about
+    'AIBOTK_KEY': '',
+    'AIBOTK_TYPE': '',                  # 智能微秘书 发送目标 room 或 contact
+    'AIBOTK_NAME': '',                  # 智能微秘书  发送群名 或者好友昵称和type要对应好
+
+    'SMTP_SERVER': 'smtp.qq.com',  # SMTP 发送邮件服务器，形如 smtp.qq.com:465
+    'SMTP_SERVER_PORT': '465',  # SMTP 发送邮件服务器端口，465
+    'SMTP_SSL': 'false',  # SMTP 发送邮件服务器是否使用 SSL，填写 true 或 false
+    'SMTP_EMAIL_1': '',  # SMTP 收发件邮箱，通知将会由自己发给自己
+    'SMTP_PASSWORD_1': '',  # SMTP 登录密码，也可能为特殊口令，视具体邮件服务商说明而定
+    'SMTP_NAME_1': '',  # SMTP 收发件人姓名，可随意填写
+    'PUSHME_KEY': '',                   # PushMe 酱的 PUSHME_KEY
+
+    'CHRONOCAT_QQ': '',                 # qq号
+    'CHRONOCAT_TOKEN': '',              # CHRONOCAT 的token
+    'CHRONOCAT_URL': '',                # CHRONOCAT的url地址
+
+    'WEBHOOK_URL': '',                  # 自定义通知 请求地址
+    'WEBHOOK_BODY': '',                 # 自定义通知 请求体
+    'WEBHOOK_HEADERS': '',              # 自定义通知 请求头
+    'WEBHOOK_METHOD': '',               # 自定义通知 请求方法
+    'WEBHOOK_CONTENT_TYPE': ''          # 自定义通知 content-type
+}
+notify_function = []
+# fmt: on
+
+# 首先读取 面板变量 或者 github action 运行变量
+for k in push_config:
+    if os.getenv(k):
+        v = os.getenv(k)
+        push_config[k] = v
+
 
 def pushplus_bot(title: str, content: str, url="http://www.pushplus.plus/send") -> None:
     """
    使用push+推送消息。
    """
-    PUSH_PLUS_USER = push_config.get("PUSH_PLUS_USER")
-    PUSH_PLUS_TOKEN = push_config.get("PUSH_PLUS_TOKEN")
+    PUSH_PLUS_USER = push_config.get("PUSH_PLUS_USER_1")
+    PUSH_PLUS_TOKEN = push_config.get("PUSH_PLUS_TOKEN_1")
     data = {
         "token": PUSH_PLUS_TOKEN,
         "title": title,
@@ -29,15 +124,16 @@ def pushplus_bot(title: str, content: str, url="http://www.pushplus.plus/send") 
         "topic": PUSH_PLUS_USER,
     }
     body = json.dumps(data).encode(encoding="utf-8")
-    response = requests.post(url, data=body, headers={'Content-Type': "application/json"}).json()
+    response = requests.post(url, data=body, headers={
+                             'Content-Type': "application/json"}).json()
     print("PUSHPLUS 推送{0}！".format('成功' if response["code"] == 200 else '失败'))
 
 
 def smtp(title: str, content: str) -> None:
-    msg_from = push_config.get("SMTP_EMAIL")  # 发送方邮箱
-    passwd = 'dvblhfcntggzeadi'  # 就是上面的授权码
+    msg_from = push_config.get("SMTP_EMAIL_1")  # 发送方邮箱
+    passwd = push_config.get("SMTP_PASSWORD_1")
 
-    to = ['send_message@qq.com','1415753409@qq.com']  # 接受方邮箱
+    to = ['send_message@qq.com', '1415753409@qq.com']  # 接受方邮箱
 
     # 设置邮件内容
     # MIMEMultipart类可以放任何内容
@@ -54,7 +150,8 @@ def smtp(title: str, content: str) -> None:
     try:
         # 开始发送
         # 通过SSL方式发送，服务器地址和端口
-        s = smtplib.SMTP_SSL(push_config.get("SMTP_SERVER"), push_config.get("SMTP_SERVER_PORT"))
+        s = smtplib.SMTP_SSL(push_config.get("SMTP_SERVER"),
+                             push_config.get("SMTP_SERVER_PORT"))
         # 登录邮箱
         s.login(msg_from, passwd)
         # 开始发送
@@ -147,7 +244,7 @@ def main():
                                        roomverify).get("body", None))
             result_week = "近一周电量使用情况：\n" + generate_result_week(week_response)
 
-            result = result + result_today[0] + result_week + "\n\n"
+            result += result_today[0] + result_week + "\n\n"
             # print(result)
     else:
         result_today = generate_result_today(room_response)
@@ -158,27 +255,18 @@ def main():
                                    roomverify).get("body", None))
         result_week = "近一周电量使用情况：\n" + generate_result_week(week_response)
 
-        result = result + result_today[0] + result_week
+        result += result_today[0] + result_week
     print(result)
     if Notice:
         pushplus_bot("每日电量播报：", result)
-        #send("每日电量播报：", result)
+        # send("每日电量播报：", result)
         smtp("每日电量播报：", result)
         # print(result)
 
 
 if __name__ == '__main__':
-    push_config = {
-        'PUSH_PLUS_TOKEN': '3f24e08c5add400785f19b2d2eeab451',
-        'PUSH_PLUS_USER': '000',
-        'SMTP_SERVER': 'smtp.qq.com',  # SMTP 发送邮件服务器，形如 smtp.qq.com:465
-        'SMTP_SERVER_PORT': '465',  # SMTP 发送邮件服务器端口，465
-        'SMTP_SSL': 'false',  # SMTP 发送邮件服务器是否使用 SSL，填写 true 或 false
-        'SMTP_EMAIL': 'send_message@qq.com',  # SMTP 收发件邮箱，通知将会由自己发给自己
-        'SMTP_PASSWORD': 'dvblhfcntggzeadi',  # SMTP 登录密码，也可能为特殊口令，视具体邮件服务商说明而定
-        'SMTP_NAME': 'SCIPLINE',  # SMTP 收发件人姓名，可随意填写
-    }
     Notice = False
     account = "202010224109"
+    # 阈值
     threshold = 20
     main()
