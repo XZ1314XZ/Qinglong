@@ -8,6 +8,8 @@ import re
 import asyncio
 from aiohttp import ClientSession
 import os
+from notify import send
+
 contents = ''
 
 
@@ -96,21 +98,8 @@ class AuthenticatedSession:
                 print(f"Error occurred: {e}")
 
 
-async def qywx_key():
-    qykey = '0e8d3263-029e-4ff4-ae93-58449e040f8a'
-    qywx_key_key = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={}".format(
-        qykey)
-    qywx_key_message = {"msgtype": "text",
-                        "text": {
-                            "content": contents,
-                        }
-                        }
-    qywx_key_header = {"Content-Type": "application/json", "Charset": "UTF-8"}
-    async with ClientSession() as session1:
-        async with session1.post(url=qywx_key_key, headers=qywx_key_header, data=json.dumps(qywx_key_message)) as resp:
-            if resp.status == 200:
-                print('企业微信群机器人消息已推送，请查收  ')
-
+async def send_notify():
+   send('科技玩家自动牵动', contents)
 
 async def handle_user(user, passwd):
     async with ClientSession() as session:
@@ -128,7 +117,7 @@ async def main():
     tasks = [handle_user(user, passwd) for user, passwd in userpass.items()]
     await asyncio.gather(*tasks)
     print(contents)
-    await qywx_key()
+    await send_notify()
 
 
 if __name__ == '__main__':
