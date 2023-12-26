@@ -99,7 +99,7 @@ class AuthenticatedSession:
 
 
 async def send_notify():
-   send('科技玩家自动牵动', contents)
+   send('科技玩家自动签到', contents)
 
 async def handle_user(user, passwd):
     async with ClientSession() as session:
